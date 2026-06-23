@@ -1,0 +1,150 @@
+# Checkpoint 5: Train and evaluate model (Iris dataset)
+# Complete solution following all required steps
+
+import numpy as np
+import pandas as pd
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Set style for plots
+plt.style.use('seaborn-v0_8')
+
+# ============================
+# 1. Import the dataset
+# ============================
+iris = load_iris()
+
+# Features and target
+X = iris.data
+y = iris.target
+
+# Optional: Create a DataFrame for easier exploration
+df = pd.DataFrame(data=X, columns=iris.feature_names)
+df['species'] = pd.Categorical.from_codes(y, iris.target_names)
+
+print("Dataset loaded successfully!\n")
+
+# ============================
+# 2. Explore the data
+# ============================
+print("=== Data Exploration ===")
+print(f"Dataset shape: {df.shape}")
+print(f"Feature names: {iris.feature_names}")
+print(f"Target classes: {iris.target_names}")
+print("\nFirst 5 rows:")
+print(df.head())
+print("\nClass distribution:")
+print(df['species'].value_counts())
+print("\nSummary statistics:")
+print(df.describe())
+
+# ============================
+# 3. Split the data
+# ============================
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, 
+    test_size=0.2, 
+    random_state=42,
+    stratify=y  # Ensure balanced classes in split
+)
+
+print(f"\nTraining set shape: {X_train.shape}")
+print(f"Test set shape: {X_test.shape}")
+
+# ============================
+# 4. Choose and train a model (KNN)
+# ============================
+knn = KNeighborsClassifier(n_neighbors=3)
+knn.fit(X_train, y_train)
+
+print("\nKNN model trained with k=3")
+
+# ============================
+# 5. Make predictions
+# ============================
+y_pred = knn.predict(X_test)
+
+# ============================
+# 6. Evaluate performance
+# ============================
+accuracy = accuracy_score(y_test, y_pred)
+print(f"\n=== Model Evaluation ===")
+print(f"Accuracy: {accuracy:.4f} ({accuracy*100:.2f}%)")
+
+# Confusion Matrix
+cm = confusion_matrix(y_test, y_pred)
+print("\nConfusion Matrix:")
+print(cm)
+
+# Detailed classification report
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred, target_names=iris.target_names))
+
+# Visualize Confusion Matrix
+plt.figure(figsize=(8, 6))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+            xticklabels=iris.target_names,
+            yticklabels=iris.target_names)
+plt.title('Confusion Matrix - KNN Classifier (Iris)')
+plt.ylabel('True Label')
+plt.xlabel('Predicted Label')
+plt.show()
+
+# Interpretation
+print("\n=== Interpretation ===")
+print("The model performed excellently on the Iris dataset.")
+print("• Setosa is perfectly classified (always easy to separate).")
+print("• Versicolor and Virginica have very high accuracy with only minor overlap.")
+print("This is a classic benchmark dataset where simple models like KNN achieve near-perfect results.")
+
+# ============================
+# Bonus: Try a second model (Decision Tree)
+# ============================
+from sklearn.tree import DecisionTreeClassifier
+
+dt = DecisionTreeClassifier(random_state=42, max_depth=3)
+dt.fit(X_train, y_train)
+y_pred_dt = dt.predict(X_test)
+
+print("\n" + "="*40)
+print("Bonus: Decision Tree Classifier")
+print(f"Accuracy: {accuracy_score(y_test, y_pred_dt):.4f}")
+print(classification_report(y_test, y_pred_dt, target_names=iris.target_names))
+
+# ============================
+# Bonus: Visualize decision boundaries (using 2 features)
+# ============================
+from sklearn.decomposition import PCA
+
+# Reduce to 2D for visualization
+pca = PCA(n_components=2)
+X_2d = pca.fit_transform(X)
+
+X_train_2d, X_test_2d, y_train_2d, y_test_2d = train_test_split(
+    X_2d, y, test_size=0.2, random_state=42, stratify=y
+)
+
+knn_2d = KNeighborsClassifier(n_neighbors=3)
+knn_2d.fit(X_train_2d, y_train_2d)
+
+# Plot decision boundaries
+x_min, x_max = X_2d[:, 0].min() - 1, X_2d[:, 0].max() + 1
+y_min, y_max = X_2d[:, 1].min() - 1, X_2d[:, 1].max() + 1
+xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.1),
+                     np.arange(y_min, y_max, 0.1))
+
+Z = knn_2d.predict(np.c_[xx.ravel(), yy.ravel()])
+Z = Z.reshape(xx.shape)
+
+plt.figure(figsize=(10, 8))
+plt.contourf(xx, yy, Z, alpha=0.4, cmap='viridis')
+plt.scatter(X_2d[:, 0], X_2d[:, 1], c=y, cmap='viridis', edgecolor='k', s=80)
+plt.title('KNN Decision Boundaries (PCA 2D projection of Iris)')
+plt.xlabel('Principal Component 1')
+plt.ylabel('Principal Component 2')
+plt.colorbar(label='Species')
+plt.show()
